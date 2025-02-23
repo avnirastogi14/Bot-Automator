@@ -1,7 +1,7 @@
 from huggingface_hub import login
 
 # Replace "YOUR_HUGGINGFACE_TOKEN" with your actual token
-login(token="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")
+login(token="")
 
 import torch
 from transformers import pipeline
