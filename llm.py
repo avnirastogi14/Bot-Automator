@@ -16,7 +16,6 @@ pipe = pipeline(
 )
 
 pipe("The key to life is")
-
 print()
 
 import discord
