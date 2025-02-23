@@ -2,8 +2,8 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipe
 from difflib import SequenceMatcher
 
 # loads distilbert - this is the AI model that helps understand user text
-tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+tokenizer = AutoTokenizer.from_pretrained("MODEL NAME")
+model = AutoModelForSequenceClassification.from_pretrained("MODEL NAME")
 intent_recognition_pipeline = pipeline("text-classification", model=model, tokenizer=tokenizer)
 
 # In-memory data store for roles
