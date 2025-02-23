@@ -1,18 +1,19 @@
-
-
+import os
 import discord
 from discord.ext import commands
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import nest_asyncio
+from dotenv import load_dotenv
 
 nest_asyncio.apply()
+load_dotenv()
 
 intents = discord.Intents.default()
 intents.messages = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-huggingface_token = ""
-discord_token = ""
+huggingface_token = os.getenv("HGGING_FACE")
+discord_token = os.getenv("TOKEN")
 
 model_name = "meta/llama-3.2-1b"
 
