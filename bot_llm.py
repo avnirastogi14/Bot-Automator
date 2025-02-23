@@ -34,16 +34,19 @@ db = mongo_client["codejam"]
 roles_collection = db["roles"]
 
 # Intents
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.members = True
 
 # Bot Initialization
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents)
 
 # Load Transformer Model
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
 model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
 intent_recognition_pipeline = pipeline("text-classification", model=model, tokenizer=tokenizer)
+
+# Slash Commands
+
 
 # Command Mapping (with functions)
 command_mapping = {
@@ -68,8 +71,8 @@ def get_best_command(user_input):
     command_scores = []
 
     for command_key, command_list in command_mapping.items():
-        aliases = command_list[:-1]
-        description = command_list[-1]
+        aliases = command_list[:1]
+        description = command_list[1]
 
         alias_scores = []
         for alias in aliases:
@@ -91,136 +94,10 @@ def get_best_command(user_input):
         return command_scores[0]['command'], command_scores[0]['description']
     return "", ""
 
-# Slash Commands
-
-@bot.tree.command(name="addroledata", description="Add role data", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(role_name="Team Name", github_repo="GitHub Repo", github_usernames="GitHub Usernames", status="Status")
-async def addroledata(interaction: discord.Interaction, role_name: str, github_repo: str = None, github_usernames: str = None, status: str = None):
-    await interaction.response.defer(thinking=True)
-    guild = interaction.guild
-    if not guild:
-        await interaction.followup.send("Could not find the guild context.")
-        return
-
-    role = discord.utils.get(guild.roles, name=role_name)
-    if not role:
-        await interaction.followup.send(f'The role "{role_name}" does not exist in this guild.')
-        return
-
-    # Permission check
-    member = interaction.user
-    has_admin = member.guild_permissions.administrator
-    has_target_role = role in member.roles
-
-    if not (has_admin or has_target_role):
-        await interaction.followup.send("You do not have permission to use this command.")
-        return
-
-    # Prepare data
-    github_usernames_list = []
-    if github_usernames:
-        github_usernames_list = [u.strip() for u in github_usernames.split(",") if u.strip()]
-
-    # Upsert role data
-    existing_data = roles_collection.find_one({"name": role_name})
-    if existing_data:
-        update_data = {}
-        if github_repo is not None:
-            update_data["githubRepo"] = github_repo
-        if github_usernames_list:
-            update_data["githubUser names"] = github_usernames_list
-        if status is not None:
-            update_data["status"] = status
-
-        if update_data:
-            roles_collection.update_one({"name": role_name}, {"$set": update_data})
-            await interaction.followup.send(f'Role data for "{role_name}" has been updated.')
-        else:
-            await interaction.followup.send(f"No updates were provided for \"{role_name}\".")
-    else:
-        # Insert new
-        role_document = {
-            "name": role_name,
-            "githubRepo": github_repo if github_repo else "",
-            "githubUser names": github_usernames_list,
-            "status": status if status else "",
-            "marks": []  # default if you want to track marks
-        }
-        roles_collection.insert_one(role_document)
-        await interaction.followup.send(f'Role data for "{role_name}" has been added.')
-
-@bot.tree.command(name="showroledata", description="Show role data", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(role_name="Role Name")
-async def showroledata(interaction: discord.Interaction, role_name: str):
-    await interaction.response.defer(thinking=True)
-    guild = interaction.guild
-    if not guild:
-        await interaction.followup.send("Could not find the guild context.")
-        return
-
-    # Permission check
-    member = interaction.user
-    has_admin = member.guild_permissions.administrator
-    role = discord.utils.get(guild.roles, name=role_name)
-
-    if not role:
-        await interaction.followup.send(f'Role "{role_name}" not found in this guild.')
-        return
-
-    has_target_role = role in member.roles
-
-    if not (has_admin or has_target_role):
-        await interaction.followup.send("You do not have permission to use this command.")
-        return
-
-    # Fetch data from MongoDB
-    role_data = roles_collection.find_one({"name": role_name})
-    if not role_data:
-        await interaction.followup.send(f'No data found for role "{role_name}".')
-        return
-
-    # Create and send embed message
-    embed = discord.Embed(title=f"Role Data for {role_name}", color=discord.Color.blue())
-    embed.add_field(name="GitHub Repo", value=role_data.get("githubRepo", "N/A"), inline=False)
-    embed.add_field(name="GitHub Usernames", value=", ".join(role_data.get("githubUser  names", [])) or "N/A", inline=False)
-    embed.add_field(name="Status", value=role_data.get("status", "N/A"), inline=False)
-
-    await interaction.followup.send(embed=embed)
-
-@bot.tree.command(name="setstatus", description="Set role status", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(role_name="Role Name", status="New Status")
-async def setstatus(interaction: discord.Interaction, role_name: str, status: str):
-    await interaction.response.defer(thinking=True)
-    guild = interaction.guild
-    if not guild:
-        await interaction.followup.send("Could not find the guild context.")
-        return
-
-    # Permission check
-    member = interaction.user
-    has_admin = member.guild_permissions.administrator
-    role = discord.utils.get(guild.roles, name=role_name)
-
-    if not role:
-        await interaction.followup.send(f'Role "{role_name}" not found in this guild.')
-        return
-
-    has_target_role = role in member.roles
-
-    if not (has_admin or has_target_role):
-        await interaction.followup.send("You do not have permission to use this command.")
-        return
-
-    # Update status in MongoDB
-    result = roles_collection.update_one({"name": role_name}, {"$set": {"status": status}})
-    if result.modified_count > 0:
-        await interaction.followup.send(f'Status for role "{role_name}" has been updated to "{status}".')
-    else:
-        await interaction.followup.send(f'No changes made to the status of "{role_name}".')
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user:
+    if message.author.bot:
         return
 
     if bot.user.mentioned_in(message):
@@ -246,7 +123,6 @@ async def on_message(message):
                 return
 
             if confirmation_message:
-                command_function = command_mapping[best_command][2]
 
                 try:
                     args = shlex.split(user_input)  # Use shlex for argument parsing
@@ -254,9 +130,11 @@ async def on_message(message):
                     args = user_input.split()[1:]  # Use the old method
 
                 try:
-                    await command_function(message, *args)  # Execute the command
+                    # await command_function(message, *args)  # Execute the command
+                    await message.channel.send(f"!{command_mapping[best_command][0]} " + ' '.join(args))
                 except Exception as e:
                     await message.channel.send(f"Error executing command: {e}")
+                    raise e
             else:
                 await message.channel.send("Command canceled.")
 
