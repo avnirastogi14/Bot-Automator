@@ -1,14 +1,23 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+<<<<<<< HEAD
 from difflib import SequenceMatcher
 import numpy as np
 
 # loads distilbert - this is the AI model that helps understand user text
+=======
+
+# Load the classification model (DistilBERT for this example)
+>>>>>>> 6f99cb7859159118d8813420ea3c10616ad0d738
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
 model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
 intent_recognition_pipeline = pipeline("text-classification", model=model, tokenizer=tokenizer)
 
+<<<<<<< HEAD
 # all the bot commands and their variations
 # last item in each list is the description
+=======
+#command mapping with descriptions
+>>>>>>> 6f99cb7859159118d8813420ea3c10616ad0d738
 command_mapping = {
     "show stats": ["/about", "bot stats", "server stats", "show bot info", "Shows bot statistics"],
     "disable attachment spam": ["/attachmentspam disable", "block attachments", "no file spam", "Disables attachment spam"],
@@ -34,6 +43,7 @@ def calculate_semantic_similarity(text1, text2, pipeline):
 # matching user input to the right command
 # uses both exact matching and AI to figure out what command they probably want
 def get_best_command(user_input):
+<<<<<<< HEAD
     """Get the best matching command using multiple similarity metrics"""
     command_scores = []
 
@@ -109,3 +119,50 @@ def simulate_user_input():
 
 if __name__ == "__main__":
     simulate_user_input()
+=======
+    best_match = ""
+    highest_similarity = 0.0
+    description = ""
+
+    # Iterate over all commands and their synonyms
+    for key, commands in command_mapping.items():
+        for command in commands[:-1]:
+            prompt = f"User wants to: {user_input}. Command meaning: {command}."
+            result = intent_recognition_pipeline(prompt)[0]
+            similarity = float(result["score"])
+
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                best_match = commands[0]  # Return the primary command
+                description = commands[-1]  # The last item is the description
+
+    return best_match, description
+
+# Simulate user input for testing
+def simulate_user_input():
+    while True:
+        print("Enter your command (in plain English): ")
+        user_input = input().strip().lower()
+
+        # Find the best matching command
+        best_command, description = get_best_command(user_input)
+
+        if best_command:
+            print(f"Did you mean to run '{best_command}'? ({description}) Type 'yes' to confirm or 'no' to cancel.")
+
+            confirmation = input().strip().lower()
+            if confirmation == "yes":
+                print(f"Executing '{best_command}'... (simulated)")
+                break
+            else:
+                print("Command canceled.")
+                break
+        else:
+            print("Sorry, I couldn't understand your request. Please try again.")
+            retry = input("Do you want to try again? (yes/no): ").strip().lower()
+            if retry != "yes":
+                break
+
+# Run the simulation
+simulate_user_input()
+>>>>>>> 6f99cb7859159118d8813420ea3c10616ad0d738
