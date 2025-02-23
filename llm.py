@@ -19,5 +19,7 @@ pipe = pipeline(
 pipe("The key to life is")
 
 print()
+
+#testing of discord module for correct import and working - 
 import discord
 print(discord.__version__)
