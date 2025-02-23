@@ -17,3 +17,7 @@ pipe = pipeline(
 )
 
 pipe("The key to life is")
+
+print()
+import discord
+print(discord.__version__)
